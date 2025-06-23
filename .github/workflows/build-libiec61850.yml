@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
- 
+
     steps:
     - name: Checkout current repository
       uses: actions/checkout@v4
@@ -103,10 +103,10 @@ jobs:
       shell: bash
 
     - name: Configure CMake (Ubuntu arm64)
-      if: |
+      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+      run: |
         cd libiec61850-source
-        run: |
-        cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_MBEDTLS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/aarch64-linux-gnu.cmake -DBUILD_EXAMPLES=OFF -DBUILD_DOCUMENTATION=OFF -DBUILD_SHARED=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_C_FLAGS="-fvisibility=default -fPIC" -DCMAKE_CXX_FLAGS="-fvisibility=default -fPIC" -DCMAKE_INSTALL_PREFIX=./install >cmake_output.txt 2>&1 || (cat cmake_output.txt && exit 1)
+        cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_MBEDTLS=ON -DCMAKE_TOOLCHAIN_FILE=./cmake/aarch64-linux-gnu.cmake -DBUILD_EXAMPLES=OFF -DBUILD_DOCUMENTATION=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_C_FLAGS="-fvisibility=default -fPIC" -DCMAKE_CXX_FLAGS="-fvisibility=default -fPIC" -DCMAKE_INSTALL_PREFIX=./install > cmake_output.txt 2>&1 || (cat cmake_output.txt && exit 1)
       shell: bash
 
     - name: Configure CMake (Windows x64)
