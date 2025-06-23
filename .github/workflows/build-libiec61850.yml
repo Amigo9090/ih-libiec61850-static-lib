@@ -67,10 +67,15 @@ jobs:
         choco install cmake
         curl -L -o wpcap.zip https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip
         unzip wpcap.zip -d libiec61850-source/third_party/winpcap
-        curl -L -o mbedtls.zip https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.6.2.zip
+        curl -L -o mbedtls.zip https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.8.zip
         unzip mbedtls.zip -d libiec61850-source/third_party
-        mv libiec61850-source/third_party/mbedtls-3.6.2 libiec61850-source/third_party/mbedtls
-        ls -R libiec61850-source/third_party/mbedtls | grep platform.h || (echo "Error: platform.h not found in mbedtls directory" && exit 1)
+        mv libiec61850-source/third_party/mbedtls-2.28.8 libiec61850-source/third_party/mbedtls
+        echo "Listing mbedtls directory contents:"
+        ls -R libiec61850-source/third_party/mbedtls
+        if [ ! -f "libiec61850-source/third_party/mbedtls/include/mbedtls/platform.h" ]; then
+          echo "Error: platform.h not found in mbedtls directory"
+          exit 1
+        fi
       shell: bash
 
     - name: Set up build environment (macOS)
@@ -86,6 +91,12 @@ jobs:
           echo "Error: libiec61850-source directory not found"
           exit 1
         fi
+      shell: bash
+
+    - name: Clear CMake cache (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        rm -rf libiec61850-source/build/*
       shell: bash
 
     - name: Configure CMake (Ubuntu x64)
@@ -114,7 +125,9 @@ jobs:
       run: |
         mkdir -p libiec61850-source/build
         cd libiec61850-source/build
-        cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DWITH_MBEDTLS=ON -DMBEDTLS_INCLUDE_DIR=../third_party/mbedtls/include -DMBEDTLS_SOURCE_DIR=../third_party/mbedtls -DBUILD_EXAMPLES=OFF -DBUILD_DOCUMENTATION=OFF -DBUILD_SHARED_LIBS=OFF -D_CRT_SECURE_NO_WARNINGS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=../install > cmake_output.txt 2>&1 || (cat cmake_output.txt && exit 1)
+        pwd
+        cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DWITH_MBEDTLS=ON -DMBEDTLS_INCLUDE_DIRS=$(pwd)/../third_party/mbedtls/include -DMBEDTLS_SOURCE_DIR=$(pwd)/../third_party/mbedtls -DBUILD_EXAMPLES=OFF -DBUILD_DOCUMENTATION=OFF -DBUILD_SHARED_LIBS=OFF -D_CRT_SECURE_NO_WARNINGS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=../install > cmake_output.txt 2>&1 || (cat cmake_output.txt && exit 1)
+        cat cmake_output.txt
       shell: bash
 
     - name: Debug CMake output
@@ -203,10 +216,10 @@ jobs:
         body: |
           Automated release of libiec61850 v1.6 with TLS support for multiple platforms.
           Includes static libraries for all platforms and a single set of header files:
-          - Ubuntu (x64, arm, arm64)
-          - Windows (x64)
-          - macOS (x64, arm64)
-        draft: false
+            - Ubuntu (x64, arm, arm64)
+            - Windows (x64)
+            - macOS (x64, arm64)
+        draft: true
         prerelease: false
 
     - name: Download all artifacts
@@ -214,7 +227,7 @@ jobs:
       with:
         path: artifacts
 
-    - name: Prepare single archive for release
+    - name: Prepare single output archive
       run: |
         mkdir -p libiec61850-release/lib
         mkdir -p libiec61850-release/include
